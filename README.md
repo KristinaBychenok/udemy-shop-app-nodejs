@@ -6,3 +6,4 @@
 - MVC
 - Dynamic routes
 - SQL
+- sequelize

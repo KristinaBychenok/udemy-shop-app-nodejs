@@ -8,6 +8,14 @@ const shopRoutes = require('./routes/shop')
 const rootDir = require('./util/path')
 const { get404Page } = require('./controllers/error')
 
+const sequelize = require('./util/database')
+const Product = require('./models/product')
+const User = require('./models/user')
+const Cart = require('./models/cart')
+const CartItem = require('./models/cart-item')
+const Order = require('./models/order')
+const OrderItem = require('./models/order-item')
+
 const app = express()
 
 app.set('view engine', 'ejs')
@@ -26,12 +34,48 @@ app.set('views', 'views')
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(express.static(path.join(rootDir, 'public')))
 
+app.use((req, res, next) => {
+  User.findByPk(1)
+    .then((user) => {
+      req.user = user
+      next()
+    })
+    .catch((err) => console.log(err))
+})
+
 app.use('/admin', adminRoutes)
 app.use(shopRoutes)
 
 app.use(get404Page)
 
-app.listen(3000)
+// define a relations
+Product.belongsTo(User, { constraints: true, delete: 'CASCADE' })
+User.hasMany(Product)
+Cart.belongsTo(User)
+User.hasOne(Cart)
+Cart.belongsToMany(Product, { through: CartItem })
+Product.belongsToMany(Cart, { through: CartItem })
+Order.belongsTo(User)
+User.hasMany(Order)
+Order.belongsToMany(Product, { through: OrderItem })
+
+sequelize
+  // .sync({ force: true }) // to add new tables with new relations
+  .sync()
+  .then((res) => User.findByPk(1))
+  .then((user) => {
+    if (!user) {
+      return User.create({ name: 'Max', email: 'test@test.com' })
+    }
+    return Promise.resolve(user)
+  })
+  .then((user) => {
+    user.createCart()
+  })
+  .then((cart) => {
+    app.listen(3000)
+  })
+  .catch((err) => console.log(err))
 
 // const server = http.createServer((req, res) => {
 //   const url = req.url

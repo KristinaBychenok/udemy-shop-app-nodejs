@@ -7,3 +7,4 @@
 - Dynamic routes
 - SQL
 - sequelize
+- noSQL (MongoDB)

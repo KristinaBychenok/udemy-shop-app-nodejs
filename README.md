@@ -8,3 +8,4 @@
 - SQL
 - sequelize
 - noSQL (MongoDB)
+- Mongoose

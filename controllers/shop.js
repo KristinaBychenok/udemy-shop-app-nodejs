@@ -1,8 +1,9 @@
 // const Cart = require('../models/cart')
+const Order = require('../models/order')
 const Product = require('../models/product')
 
 exports.getShopPage = (req, res, next) => {
-  Product.fetchAll()
+  Product.find()
     .then((products) => {
       res.render('shop/index', {
         prods: products,
@@ -16,7 +17,7 @@ exports.getShopPage = (req, res, next) => {
 }
 
 exports.getProductsPage = (req, res, next) => {
-  Product.fetchAll()
+  Product.find()
     .then((products) => {
       res.render('shop/products-list', {
         prods: products,
@@ -47,8 +48,9 @@ exports.getProduct = (req, res, next) => {
 
 exports.getCart = (req, res, next) => {
   req.user
-    .getCart()
-    .then((products) => {
+    .populate('cart.items.productId')
+    .then((user) => {
+      const products = user.cart.items
       res.render('shop/cart', {
         pageTitle: 'Cart',
         path: '/cart',
@@ -89,8 +91,7 @@ exports.postDeleteCartItem = (req, res, next) => {
 }
 
 exports.getOrders = (req, res, next) => {
-  req.user
-    .getOrders()
+  Order.find({ userId: req.user._id })
     .then((orders) => {
       res.render('shop/orders', {
         pageTitle: 'Orders',
@@ -105,21 +106,27 @@ exports.getOrders = (req, res, next) => {
 
 exports.postOrder = (req, res, next) => {
   req.user
-    .addOrder()
-    .then(() => {
-      res.render('shop/orders', {
-        pageTitle: 'Orders',
-        path: '/orders',
+    .populate('cart.items.productId')
+    .then((user) => {
+      const products = user.cart.items.map((item) => ({
+        quantity: item.quantity,
+        productData: { ...item.productId._doc },
+      }))
+
+      const order = new Order({
+        products,
+        userId: req.user._id,
       })
+
+      return order.save()
+    })
+    .then(() => {
+      return req.user.clearCart()
+    })
+    .then((result) => {
+      res.redirect('/orders')
     })
     .catch((err) => {
       console.log(err)
     })
 }
-
-// exports.getCheckout = (req, res, next) => {
-//   res.render('shop/checkout', {
-//     pageTitle: 'Checkout',
-//     path: '/checkout',
-//   })
-// }

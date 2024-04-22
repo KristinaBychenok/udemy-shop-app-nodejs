@@ -9,3 +9,7 @@
 - sequelize
 - noSQL (MongoDB)
 - Mongoose
+- Session and cookies
+- Authentication
+- Validation
+- Error handling

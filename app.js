@@ -14,6 +14,7 @@ const session = require('express-session')
 const MongoDbStore = require('connect-mongodb-session')(session)
 const csrf = require('csurf')
 const flash = require('connect-flash')
+const multer = require('multer')
 
 const MONGODB_URI =
   'mongodb+srv://user-1:QimZKDfQNguxkuNf@cluster0.a0ycx1c.mongodb.net/shop-mongoose'
@@ -24,6 +25,27 @@ const store = new MongoDbStore({
   collection: 'sessions',
 })
 const csrfProtection = csrf()
+
+const fileStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'images')
+  },
+  filename: (req, file, cb) => {
+    cb(null, new Date().getMilliseconds() + '-' + file.originalname)
+  },
+})
+
+const fileFilter = (req, file, cb) => {
+  if (
+    file.mimetype === 'image/png' ||
+    file.mimetype === 'image/jpg' ||
+    file.mimetype === 'image/jpeg'
+  ) {
+    cb(null, true)
+  } else {
+    cb(null, false)
+  }
+}
 
 app.set('view engine', 'ejs')
 // app.engine(
@@ -39,7 +61,15 @@ app.set('view engine', 'ejs')
 app.set('views', 'views')
 
 app.use(bodyParser.urlencoded({ extended: false }))
+app.use(
+  multer({
+    // dest: 'images',
+    storage: fileStorage,
+    fileFilter,
+  }).single('image')
+)
 app.use(express.static(path.join(rootDir, 'public')))
+app.use('/images', express.static(path.join(rootDir, 'images')))
 app.use(
   session({
     secret: 'my secret',
@@ -85,10 +115,11 @@ app.use(get404Page)
 app.use((error, req, res, next) => {
   // res.status(error.httpStatusCode).render(...)
   // res.redirect('/500')
+  console.log(error)
   res.status(500).render('500', {
     pageTitle: 'Error :(',
     path: '/500',
-    isAuth: req.session.isAuth,
+    isAuth: req.session?.isAuth,
   })
 })
 

@@ -6,7 +6,7 @@ const {
   getProduct,
   getCart,
   getOrders,
-  getCheckout,
+  getInvoice,
   postCart,
   postDeleteCartItem,
   postOrder,
@@ -19,9 +19,11 @@ router.get('/', getShopPage)
 router.get('/products', getProductsPage)
 router.get('/products/:productId', getProduct)
 router.get('/cart', isAuth, getCart)
+router.get('/orders', isAuth, getOrders)
+router.get('/orders/:orderId', isAuth, getInvoice)
+
 router.post('/cart', isAuth, postCart)
 router.post('/cart-delete-item', isAuth, postDeleteCartItem)
-router.get('/orders', isAuth, getOrders)
 router.post('/create-order', isAuth, postOrder)
 
 module.exports = router

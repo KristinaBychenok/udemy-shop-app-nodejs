@@ -23,7 +23,7 @@ router.post(
       .isLength({ min: 3 })
       .isString()
       .trim(),
-    body('imageUrl', 'Please enter a valid URL!').isURL(),
+    // body('imageUrl', 'Please enter a valid URL!').isURL(),
     body('price', 'Please enter a price with only numbers!').isFloat(),
     body(
       'description',
@@ -42,7 +42,7 @@ router.post(
       .isLength({ min: 3 })
       .isString()
       .trim(),
-    body('imageUrl', 'Please enter a valid URL!').isURL(),
+    // body('imageUrl', 'Please enter a valid URL!').isURL(),
     body('price', 'Please enter a price with only numbers!').isFloat(),
     body(
       'description',

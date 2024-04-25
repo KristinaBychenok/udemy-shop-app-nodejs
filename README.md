@@ -15,3 +15,4 @@
 - Error handling
 - File Upload & Download
 - Adding pagination
+- Async requests

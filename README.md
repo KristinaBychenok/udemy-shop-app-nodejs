@@ -14,3 +14,4 @@
 - Validation
 - Error handling
 - File Upload & Download
+- Adding pagination

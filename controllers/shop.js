@@ -4,6 +4,9 @@ const path = require('path')
 const Order = require('../models/order')
 const Product = require('../models/product')
 const PDFDocument = require('pdfkit')
+const stripe = require('stripe')(
+  'sk_test_51PDNYSHf8m2CtcjNrTKSPln5V5yrERgSxCW3PGlSWCtFOUOxVKW4csUG89dENoVAZqoJADuGEm0Mlb9QodUZUpdA00nqeboyvL'
+)
 
 const ITEMS_PER_PAGE = 2
 
@@ -155,6 +158,35 @@ exports.getOrders = (req, res, next) => {
     })
 }
 
+exports.getCheckoutSuccess = (req, res, next) => {
+  req.user
+    .populate('cart.items.productId')
+    .then((user) => {
+      const products = user.cart.items.map((item) => ({
+        quantity: item.quantity,
+        productData: { ...item.productId._doc },
+      }))
+
+      const order = new Order({
+        products,
+        userId: req.user._id,
+      })
+
+      return order.save()
+    })
+    .then(() => {
+      return req.user.clearCart()
+    })
+    .then((result) => {
+      res.redirect('/orders')
+    })
+    .catch((err) => {
+      const error = new Error(err)
+      error.httpStatusCode = 500
+      return next(error)
+    })
+}
+
 exports.postOrder = (req, res, next) => {
   req.user
     .populate('cart.items.productId')
@@ -252,4 +284,52 @@ exports.getInvoice = (req, res, next) => {
       // file.pipe(res)
     })
     .catch((err) => next(err))
+}
+
+exports.getCheckout = (req, res, next) => {
+  let products
+  let total
+  req.user
+    .populate('cart.items.productId')
+    .then((user) => {
+      products = user.cart.items
+      total = products.reduce((acc, p) => {
+        acc += p.quantity * p.productId.price
+        return acc
+      }, 0)
+
+      return stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: products.map((p) => {
+          return {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: p.productId.title,
+              },
+              unit_amount: p.productId.price * 100,
+            },
+            quantity: p.quantity,
+          }
+        }),
+        mode: 'payment',
+        success_url:
+          req.protocol + '://' + req.get('host') + '/checkout/success', //http://loacalhost:3000/checkout/success
+        cancel_url: req.protocol + '://' + req.get('host') + '/checkout/cancel',
+      })
+    })
+    .then((session) => {
+      res.render('shop/checkout', {
+        pageTitle: 'Checkout',
+        path: '/checkout',
+        products: products,
+        totalSum: total,
+        sessionId: session.id,
+      })
+    })
+    .catch((err) => {
+      const error = new Error(err)
+      error.httpStatusCode = 500
+      return next(error)
+    })
 }

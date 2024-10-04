@@ -1,6 +1,8 @@
 const express = require('express')
 const bodyParser = require('body-parser')
 const path = require('path')
+const fs = require('fs')
+const https = require('https')
 // const expressHbs = require('express-handlebars')
 
 const adminRoutes = require('./routes/admin')
@@ -15,9 +17,11 @@ const MongoDbStore = require('connect-mongodb-session')(session)
 const csrf = require('csurf')
 const flash = require('connect-flash')
 const multer = require('multer')
+const helmet = require('helmet')
+const compression = require('compression')
+const morgan = require('morgan')
 
-const MONGODB_URI =
-  'mongodb+srv://user-1:QimZKDfQNguxkuNf@cluster0.a0ycx1c.mongodb.net/shop-mongoose'
+const MONGODB_URI = `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@cluster0.a0ycx1c.mongodb.net/${process.env.MONGO_DEFAULT_BADABASE}`
 
 const app = express()
 const store = new MongoDbStore({
@@ -25,6 +29,9 @@ const store = new MongoDbStore({
   collection: 'sessions',
 })
 const csrfProtection = csrf()
+
+const privateKey = fs.readFileSync('server.key')
+const certificate = fs.readFileSync('server.cert')
 
 const fileStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -59,6 +66,15 @@ app.set('view engine', 'ejs')
 // app.set('view engine', 'hbs')
 // app.set('view engine', 'pug')
 app.set('views', 'views')
+
+const accessLogStream = fs.createWriteStream(
+  path.join(__dirname, 'access.log'),
+  { flags: 'a' }
+)
+
+app.use(helmet())
+app.use(compression())
+app.use(morgan('combined', { stream: accessLogStream }))
 
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(
@@ -126,7 +142,10 @@ app.use((error, req, res, next) => {
 mongoose
   .connect(MONGODB_URI)
   .then((result) => {
-    app.listen(3000)
+    // https
+    //   .createServer({ key: privateKey, cert: certificate }, app)
+    //   .listen(process.env.MONGO_PORT || 3000)
+    app.listen(process.env.MONGO_PORT || 3000)
   })
   .catch((err) => {
     console.log(err)
